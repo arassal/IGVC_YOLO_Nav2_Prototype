@@ -1,0 +1,56 @@
+[
+  {
+    "image": "ac517380-00000000.jpg",
+    "asphalt_pixels": 447249,
+    "white_pixels": 35928,
+    "lane_hint_pixels": 29592,
+    "lane_bev_pixels": 10720,
+    "lane_corridor_cells": 2069,
+    "nav2_keepout_cells": 106298
+  },
+  {
+    "image": "ac56c836-bdabca21.jpg",
+    "asphalt_pixels": 452077,
+    "white_pixels": 32864,
+    "lane_hint_pixels": 38848,
+    "lane_bev_pixels": 16140,
+    "lane_corridor_cells": 2234,
+    "nav2_keepout_cells": 100486
+  },
+  {
+    "image": "ac6d4f42-00000000.jpg",
+    "asphalt_pixels": 353176,
+    "white_pixels": 175,
+    "lane_hint_pixels": 1280,
+    "lane_bev_pixels": 272,
+    "lane_corridor_cells": 106,
+    "nav2_keepout_cells": 119238
+  },
+  {
+    "image": "ac6e638d-7c84846d.jpg",
+    "asphalt_pixels": 411749,
+    "white_pixels": 38961,
+    "lane_hint_pixels": 112334,
+    "lane_bev_pixels": 21598,
+    "lane_corridor_cells": 528,
+    "nav2_keepout_cells": 96863
+  },
+  {
+    "image": "ac73d367-0cb39ad0.jpg",
+    "asphalt_pixels": 310498,
+    "white_pixels": 131168,
+    "lane_hint_pixels": 120794,
+    "lane_bev_pixels": 63681,
+    "lane_corridor_cells": 809,
+    "nav2_keepout_cells": 54006
+  },
+  {
+    "image": "ac985232-00000000.jpg",
+    "asphalt_pixels": 455620,
+    "white_pixels": 6077,
+    "lane_hint_pixels": 10554,
+    "lane_bev_pixels": 1579,
+    "lane_corridor_cells": 1579,
+    "nav2_keepout_cells": 116667
+  }
+]

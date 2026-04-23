@@ -1,0 +1,128 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+  - Class: rviz_common/Views
+    Name: Views
+  - Class: rviz_common/Time
+    Name: Time
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Plane Cell Count: 20
+      Cell Size: 1
+      Reference Frame: <Fixed Frame>
+      Color: 160; 160; 164
+      Line Style:
+        Value: Lines
+        Line Width: 0.03
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Input Image
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/input_image
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Overlay Image
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/overlay_image
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Asphalt Mask
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/asphalt_mask
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: White Mask
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/white_mask
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Lane Hint Mask
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/lane_hint_mask
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Lane BEV
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/lane_bev
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Lane Corridor
+      Normalize Range: true
+      Topic:
+        Value: /igvc_bev/lane_corridor_mask
+    - Alpha: 0.7
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Enabled: true
+      Name: Nav2 Filter Mask
+      Topic:
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Value: /igvc_bev/nav2/filter_mask
+      Use Timestamp: false
+    - Alpha: 0.55
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Enabled: true
+      Name: Drivable Grid
+      Topic:
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Value: /igvc_bev/nav2/drivable_grid
+      Use Timestamp: false
+  Enabled: true
+  Fixed Frame: base_link
+  Global Options:
+    Background Color: 238; 240; 242
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+    - Class: rviz_default_plugins/SetInitialPose
+      Topic:
+        Value: /initialpose
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Value: /goal_pose
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Value: /clicked_point
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 12
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Pitch: 1.0
+      Target Frame: base_link
+      Yaw: 0.8
+Window Geometry:
+  Height: 980
+  Hide Left Dock: false
+  Hide Right Dock: false

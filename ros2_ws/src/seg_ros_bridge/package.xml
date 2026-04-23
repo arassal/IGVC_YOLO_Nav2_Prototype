@@ -2,7 +2,7 @@
 <package format="3">
   <name>seg_ros_bridge</name>
   <version>0.1.0</version>
-  <description>ROS2 bridge for YOLOPv2 perception demo assets.</description>
+  <description>ROS 2 IGVC BEV lane extraction and Nav2 grid bridge.</description>
   <maintainer email="alexander@assalfamily.com">Alexander</maintainer>
   <license>MIT</license>
 

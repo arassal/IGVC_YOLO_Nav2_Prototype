@@ -2,11 +2,11 @@ local_costmap:
   local_costmap:
     ros__parameters:
       plugins: ["obstacle_layer", "inflation_layer"]
-      filters: ["segformer_keepout_filter"]
-      segformer_keepout_filter:
+      filters: ["igvc_bev_keepout_filter"]
+      igvc_bev_keepout_filter:
         plugin: "nav2_costmap_2d::KeepoutFilter"
         enabled: True
-        filter_info_topic: "/seg_ros/segformer/nav2/costmap_filter_info"
+        filter_info_topic: "/igvc_bev/nav2/costmap_filter_info"
         transform_tolerance: 0.2
         override_lethal_cost: True
         lethal_override_cost: 252

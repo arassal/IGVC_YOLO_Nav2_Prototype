@@ -1,234 +1,168 @@
-# Competiton Semantic Segmentation: Nav2 SegFormer Branch
+# IGVC Nav2 BEV Perception
 
-This branch turns the SegFormer experiment into a **ROS 2 Jazzy + RViz + Nav2-compatible local perception demo** for IGVC-style imagery.
+ROS 2 Jazzy perception package for **IGVC-style lane boundaries** with a **BEV-first pipeline** and **Nav2-compatible keepout / drivable grids**.
 
-It does five things that `main` does not:
-
-1. runs **SegFormer + HSV refinement** as a separate semantic backend
-2. extracts **IGVC-style white lane boundaries** in BEV
-3. publishes a **local Nav2 keepout mask** as `nav_msgs/msg/OccupancyGrid`
-4. stabilizes lane and drivable outputs over time
-5. provides a **repeatable RViz demo** using your image set in `/home/alexander/Desktop/img`
-
-This branch stays separate because it is still an experiment. It is meant to answer one question:
-
-```text
-Can SegFormer produce a usable local drivable / keepout representation for Nav2 on IGVC-style camera imagery?
-```
-
-## Current Status
-
-What is working in this branch:
-
-- ROS 2 image subscriber for SegFormer
-- optional HSV refinement for road fill and lane-paint hinting
-- IGVC-specific white-line extraction and lane corridor generation
-- temporal smoothing for lane corridor and drivable grid outputs
-- lane confidence and planner mode hint topics
-- RViz config showing input, overlay, masks, and Nav2 grids
-- replay node for `/home/alexander/Desktop/img`
-- local Nav2 outputs:
-  - `/seg_ros/segformer/nav2/filter_mask`
-  - `/seg_ros/segformer/nav2/drivable_grid`
-  - `/seg_ros/segformer/nav2/costmap_filter_info`
-- metric BEV ranges and front-camera mount priors for a ZED X forward view
-
-What is intentionally not claimed:
-
-- this is **not** a full IGVC winner stack
-- this is **not** a complete replacement for object detection, stop signs, pedestrians, or potholes
-- the Nav2 mask is a **local projected keepout grid**, not a full global planner map
-
-## IGVC Relevance
-
-From the official 2026 IGVC rules, the project needs to handle:
-
-- white lane boundaries on asphalt
-- obstacles and barrels
-- potholes
-- pedestrians
-- stop signs
-- lane keeping and lane changes
-- planner-safe outputs
-
-SegFormer alone does not solve all of that. This branch focuses on the part it can honestly help with:
+This repo is built around the architecture I would actually choose for IGVC:
 
 ```text
 camera image
--> semantic road understanding
--> road refinement + lane-paint hints
--> IGVC white-line extraction in BEV
+-> asphalt / line extraction
+-> bird's-eye-view lane boundaries
 -> lane corridor estimate
--> local keepout/drivable grid
--> Nav2-compatible messages
+-> local drivable grid
+-> local keepout grid
+-> Nav2 costmap filter messages
 ```
 
-Sources:
+It is intentionally narrow. The main path is **lane boundaries and local navigation support**. Object detection can be layered on separately, but it is not the core of this repo.
 
-- http://www.igvc.org/
-- http://www.igvc.org/2026rules.pdf
-- http://www.igvc.org/reports.htm
+## What This Repo Does
 
-## Runtime Architecture
+- extracts likely asphalt support from the lower image
+- extracts white and yellow lane paint candidates
+- projects those cues into bird's-eye view
+- selects left and right lane boundary components
+- builds a lane corridor
+- publishes:
+  - debug images for RViz
+  - `nav_msgs/msg/OccupancyGrid`
+  - `nav2_msgs/msg/CostmapFilterInfo`
+  - lane state and planner mode hints
 
-```text
-image_replay_node or ZED X topic
-        |
-        v
-segformer_node
-  nvidia/segformer-b0-finetuned-cityscapes-512-1024
-        |
-        +--> /seg_ros/segformer/overlay_image
-        +--> /seg_ros/segformer/road_mask_raw
-        +--> /seg_ros/segformer/road_mask
-        +--> /seg_ros/segformer/sidewalk_mask
-        +--> /seg_ros/segformer/lane_hint_mask
-        +--> /seg_ros/segformer/igvc_white_mask
-        +--> /seg_ros/segformer/igvc_lane_bev
-        +--> /seg_ros/segformer/igvc_lane_corridor_mask
-        +--> /seg_ros/segformer/lane_detected
-        +--> /seg_ros/segformer/planner_mode_hint
-        +--> /seg_ros/segformer/nav2/filter_mask
-        +--> /seg_ros/segformer/nav2/drivable_grid
-        +--> /seg_ros/segformer/nav2/costmap_filter_info
-```
+## Why This Architecture
 
-## Proof From `/home/alexander/Desktop/img`
+For IGVC, the hard part is usually not generic semantic segmentation. It is:
 
-The contact sheet below was generated directly from your image folder:
+- stable white boundary handling
+- planner-safe top-down outputs
+- simple failure behavior when lane evidence is weak
 
-```text
-raw input | segformer + hsv | refined road mask | lane hint mask | igvc lane bev | igvc corridor | nav2 keepout bev
-```
+That is why this repo is BEV-first and Nav2-first.
 
-![SegFormer Nav2 proof](proof/segformer_nav2_igvc/segformer_nav2_contact_sheet.jpg)
+## ROS 2 Interface
 
-Generated summary:
+Primary node:
 
-- [summary json](proof/segformer_nav2_igvc/segformer_nav2_summary.json)
+- `igvc_bev_node`
 
-## ROS Topics
+Main topics:
 
 | Topic | Type | Purpose |
 |---|---|---|
-| `/seg_ros/segformer/input_image` | `sensor_msgs/msg/Image` | republished source image |
-| `/seg_ros/segformer/overlay_image` | `sensor_msgs/msg/Image` | semantic overlay |
-| `/seg_ros/segformer/class_mask` | `sensor_msgs/msg/Image` | raw class-id mask |
-| `/seg_ros/segformer/road_mask_raw` | `sensor_msgs/msg/Image` | direct Cityscapes road class |
-| `/seg_ros/segformer/road_mask` | `sensor_msgs/msg/Image` | HSV-refined road mask |
-| `/seg_ros/segformer/sidewalk_mask` | `sensor_msgs/msg/Image` | sidewalk class |
-| `/seg_ros/segformer/lane_hint_mask` | `sensor_msgs/msg/Image` | white/yellow paint cue mask |
-| `/seg_ros/segformer/igvc_white_mask` | `sensor_msgs/msg/Image` | white-line candidate mask in image space |
-| `/seg_ros/segformer/igvc_lane_bev` | `sensor_msgs/msg/Image` | bird's-eye lane boundary mask |
-| `/seg_ros/segformer/igvc_lane_corridor_mask` | `sensor_msgs/msg/Image` | fused lane corridor in BEV |
-| `/seg_ros/segformer/lane_detected` | `std_msgs/msg/Bool` | lane corridor strong enough to trust |
-| `/seg_ros/segformer/planner_mode_hint` | `std_msgs/msg/String` | `lane_following` or `obstacle_avoidance` |
-| `/seg_ros/segformer/nav2/bev_keepout_mask` | `sensor_msgs/msg/Image` | projected top-down debug image |
-| `/seg_ros/segformer/nav2/filter_mask` | `nav_msgs/msg/OccupancyGrid` | Nav2 keepout filter mask |
-| `/seg_ros/segformer/nav2/drivable_grid` | `nav_msgs/msg/OccupancyGrid` | local drivable-vs-nondrivable grid |
-| `/seg_ros/segformer/nav2/costmap_filter_info` | `nav2_msgs/msg/CostmapFilterInfo` | Nav2 filter metadata |
-| `/seg_ros/segformer/metadata` | `std_msgs/msg/String` | pixel counts and grid info |
-| `/seg_ros/segformer/timing` | `std_msgs/msg/String` | runtime timing |
+| `/igvc_bev/input_image` | `sensor_msgs/msg/Image` | republished source image |
+| `/igvc_bev/overlay_image` | `sensor_msgs/msg/Image` | lane and corridor overlay |
+| `/igvc_bev/asphalt_mask` | `sensor_msgs/msg/Image` | asphalt support mask |
+| `/igvc_bev/white_mask` | `sensor_msgs/msg/Image` | white-line candidate mask |
+| `/igvc_bev/yellow_mask` | `sensor_msgs/msg/Image` | yellow-line candidate mask |
+| `/igvc_bev/lane_hint_mask` | `sensor_msgs/msg/Image` | combined paint cue mask |
+| `/igvc_bev/lane_bev` | `sensor_msgs/msg/Image` | bird's-eye lane evidence |
+| `/igvc_bev/lane_corridor_mask` | `sensor_msgs/msg/Image` | fused lane corridor in BEV |
+| `/igvc_bev/road_bev` | `sensor_msgs/msg/Image` | BEV drivable prior |
+| `/igvc_bev/lane_detected` | `std_msgs/msg/Bool` | lane corridor strong enough to trust |
+| `/igvc_bev/planner_mode_hint` | `std_msgs/msg/String` | `lane_following` or `obstacle_avoidance` |
+| `/igvc_bev/nav2/bev_keepout_mask` | `sensor_msgs/msg/Image` | top-down keepout debug image |
+| `/igvc_bev/nav2/filter_mask` | `nav_msgs/msg/OccupancyGrid` | Nav2 keepout filter mask |
+| `/igvc_bev/nav2/drivable_grid` | `nav_msgs/msg/OccupancyGrid` | local drivable-vs-nondrivable grid |
+| `/igvc_bev/nav2/costmap_filter_info` | `nav2_msgs/msg/CostmapFilterInfo` | Nav2 keepout metadata |
+| `/igvc_bev/metadata` | `std_msgs/msg/String` | runtime and pixel/cell counts |
+| `/igvc_bev/timing` | `std_msgs/msg/String` | per-frame timing |
+
+## Nav2 Compatibility
+
+This repo publishes the **exact message types Nav2 keepout filters expect**:
+
+- `nav_msgs/msg/OccupancyGrid`
+- `nav2_msgs/msg/CostmapFilterInfo`
+
+The `CostmapFilterInfo.type` is published as `0`, which is the keepout / preferred-lane filter type in Nav2 docs.
+
+Relevant references:
+
+- https://api.nav2.org/msgs/jazzy/costmapfilterinfo.html
+- https://docs.nav2.org/configuration/packages/costmap-plugins/keepout_filter.html
+- https://docs.nav2.org/tutorials/docs/navigation2_with_keepout_filter.html
+
+Example local costmap config:
+
+- [nav2_keepout_example.yaml](/home/alexander/Desktop/IGVC_Nav2_SegFormer/config/nav2_keepout_example.yaml)
+
+## Proof Images
+
+Generated from `/home/alexander/Desktop/img`:
+
+```text
+raw input | asphalt mask | white mask | lane hint | lane bev | lane corridor | nav2 keepout | overlay
+```
+
+![IGVC BEV proof](proof/igvc_bev/igvc_bev_contact_sheet.jpg)
+
+Per-run summary:
+
+- [igvc_bev_summary.json](/home/alexander/Desktop/IGVC_Nav2_SegFormer/proof/igvc_bev/igvc_bev_summary.json)
 
 ## Build
 
 ```bash
-cd /home/alexander/Desktop/Competiton_Semantic_Segmentation/ros2_ws
+cd /home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws
 source /opt/ros/jazzy/setup.bash
 colcon build --packages-select seg_ros_bridge
 source install/setup.bash
 ```
 
-Install optional SegFormer dependency:
+## Demo With Recorded Images
 
 ```bash
-/home/alexander/github/av-perception/.venv/bin/python -m pip install -r requirements-segformer.txt
-```
-
-## Demo With Your Images
-
-This is the fastest way to see the branch working in RViz:
-
-```bash
+cd /home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws
 source /opt/ros/jazzy/setup.bash
-source /home/alexander/Desktop/Competiton_Semantic_Segmentation/ros2_ws/install/setup.bash
+source install/setup.bash
 
-ros2 launch seg_ros_bridge segformer_demo.launch.py \
+ros2 launch seg_ros_bridge igvc_bev_demo.launch.py \
   image_dir:=/home/alexander/Desktop/img \
   fps:=1.0 \
   use_rviz:=true
 ```
 
-That launch does all of this:
+This launch does three things:
 
-- publishes your images as a ROS image stream
-- runs SegFormer
-- opens RViz with the branch config
+- replays images as a ROS topic
+- runs `igvc_bev_node`
+- opens RViz with the BEV lane displays and Nav2 grids
 
-## Live ZED X Run
+## Live Camera Run
 
 ```bash
+cd /home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws
 source /opt/ros/jazzy/setup.bash
-source /home/alexander/Desktop/Competiton_Semantic_Segmentation/ros2_ws/install/setup.bash
+source install/setup.bash
 
-ros2 launch seg_ros_bridge segformer.launch.py \
+ros2 launch seg_ros_bridge igvc_bev.launch.py \
   image_topic:=/zed/zed_node/rgb/color/rect/image \
-  device:=cpu \
-  enable_hsv_refinement:=true \
-  nav2_publish_grid:=true \
   use_rviz:=true
 ```
-
-## Nav2 Integration
-
-This branch publishes the exact message pair expected by Nav2 costmap filters:
-
-- `nav_msgs/msg/OccupancyGrid`
-- `nav2_msgs/msg/CostmapFilterInfo`
-
-Example local costmap config:
-
-- [config/nav2_keepout_example.yaml](config/nav2_keepout_example.yaml)
-
-Important boundary:
-
-- the branch currently publishes a **local keepout grid in `base_link`**
-- this is best suited for **local costmap filtering**
-- a full global Nav2 map pipeline is not included here
-- camera mount values are treated as a **practical prior**, not a final measured calibration
 
 ## Generate Proof Again
 
 ```bash
-/home/alexander/github/av-perception/.venv/bin/python \
-  scripts/generate_nav2_segformer_proof.py \
+cd /home/alexander/Desktop/IGVC_Nav2_SegFormer
+python3 scripts/generate_igvc_bev_proof.py \
   --input-dir /home/alexander/Desktop/img \
-  --output-dir proof/segformer_nav2_igvc \
-  --device cpu \
+  --output-dir proof/igvc_bev \
   --limit 6
 ```
 
-## Current Opinion
+## Current Boundaries
 
-This branch is a better **Nav2-facing semantic demo** than the older SegFormer branch state because it now produces:
+What is interface-proven in this repo:
 
-- RViz-visible masks
-- repeatable replay from your images
-- IGVC-specific lane boundaries and corridor extraction
-- planner-facing local occupancy outputs
+- ROS 2 nodes and launches build
+- Nav2 keepout message types are correct
+- local keepout and drivable grids publish in `base_link`
+- replay workflow works from an image folder
 
-It is still weaker than a full competition stack because it does not yet cover:
+What still requires vehicle validation:
 
-- stop-sign handling
-- pedestrian stop behavior
-- pothole-specific logic
-- object detection fusion
+- final BEV trapezoid tuning for the mounted ZED X camera
+- lane reliability under glare, shadows, worn paint, and turns
+- actual Nav2 behavior on the robot
 
-## Related Files
-
-- [segformer node](ros2_ws/src/seg_ros_bridge/seg_ros_bridge/segformer_node.py)
-- [image replay node](ros2_ws/src/seg_ros_bridge/seg_ros_bridge/image_replay_node.py)
-- [SegFormer launch](ros2_ws/src/seg_ros_bridge/launch/segformer.launch.py)
-- [demo launch](ros2_ws/src/seg_ros_bridge/launch/segformer_demo.launch.py)
-- [RViz config](ros2_ws/src/seg_ros_bridge/rviz/segformer.rviz)
-- [proof generator](scripts/generate_nav2_segformer_proof.py)
+This is the cleanest version of the system I would start from for IGVC: **lane-first, BEV-first, and local-planner-facing**.
