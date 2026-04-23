@@ -1,0 +1,124 @@
+{
+  "model_id": "nvidia/segformer-b0-finetuned-cityscapes-512-1024",
+  "input_dir": "/home/alexander/Desktop/Competiton_Semantic_Segmentation/proof/segformer_raw_dashcam_inputs",
+  "image_count": 3,
+  "records": [
+    {
+      "image": "proof/segformer_raw_dashcam_inputs/pexels_city_dashboard.jpg",
+      "road_pixels": 274398,
+      "sidewalk_pixels": 101021,
+      "top_classes": [
+        [
+          "car",
+          10980079
+        ],
+        [
+          "building",
+          9385746
+        ],
+        [
+          "vegetation",
+          1255026
+        ],
+        [
+          "sky",
+          597867
+        ],
+        [
+          "wall",
+          456167
+        ],
+        [
+          "pole",
+          353237
+        ],
+        [
+          "road",
+          274398
+        ],
+        [
+          "person",
+          198098
+        ]
+      ]
+    },
+    {
+      "image": "proof/segformer_raw_dashcam_inputs/pexels_rainy_dashboard.jpg",
+      "road_pixels": 126419,
+      "sidewalk_pixels": 0,
+      "top_classes": [
+        [
+          "car",
+          11331300
+        ],
+        [
+          "building",
+          8524245
+        ],
+        [
+          "person",
+          814415
+        ],
+        [
+          "wall",
+          594410
+        ],
+        [
+          "motorcycle",
+          318143
+        ],
+        [
+          "road",
+          126419
+        ],
+        [
+          "rider",
+          100194
+        ],
+        [
+          "bus",
+          87868
+        ]
+      ]
+    },
+    {
+      "image": "proof/segformer_raw_dashcam_inputs/pexels_taxi_city.jpg",
+      "road_pixels": 5141,
+      "sidewalk_pixels": 182,
+      "top_classes": [
+        [
+          "building",
+          20354629
+        ],
+        [
+          "car",
+          11984291
+        ],
+        [
+          "person",
+          7342156
+        ],
+        [
+          "bus",
+          331554
+        ],
+        [
+          "bicycle",
+          112531
+        ],
+        [
+          "truck",
+          99955
+        ],
+        [
+          "rider",
+          71495
+        ],
+        [
+          "motorcycle",
+          47808
+        ]
+      ]
+    }
+  ]
+}

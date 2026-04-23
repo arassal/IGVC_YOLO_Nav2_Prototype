@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# ROS 2 / colcon
+build/
+install/
+log/
+
+# Large model artifacts
+*.pt
+!models/roboflow_logistics_yolov8.pt
+*.pth
+*.onnx
+*.engine
+*.trt
+*.bin
+
+# Local runtime data
+.ros/
+*.bag
+*.db3
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,186 @@
+{
+  "model_id": "nvidia/segformer-b0-finetuned-cityscapes-512-1024",
+  "input_dir": "/home/alexander/Desktop/img",
+  "grid_resolution": 0.05,
+  "grid_width_m": 6.0,
+  "grid_length_m": 8.0,
+  "image_count": 4,
+  "records": [
+    {
+      "image": "/home/alexander/Desktop/img/ac517380-00000000.jpg",
+      "road_pixels_raw": 180110,
+      "road_pixels_refined": 195955,
+      "lane_hint_pixels": 291,
+      "igvc_white_pixels": 747,
+      "igvc_lane_bev_pixels": 277,
+      "igvc_corridor_cells": 277,
+      "nav2_keepout_cells": 18841,
+      "top_classes": [
+        [
+          "sky",
+          361384
+        ],
+        [
+          "building",
+          184454
+        ],
+        [
+          "road",
+          180110
+        ],
+        [
+          "terrain",
+          77578
+        ],
+        [
+          "car",
+          51964
+        ],
+        [
+          "sidewalk",
+          38539
+        ],
+        [
+          "vegetation",
+          21500
+        ],
+        [
+          "pole",
+          5927
+        ]
+      ]
+    },
+    {
+      "image": "/home/alexander/Desktop/img/ac56c836-bdabca21.jpg",
+      "road_pixels_raw": 103962,
+      "road_pixels_refined": 127563,
+      "lane_hint_pixels": 2725,
+      "igvc_white_pixels": 4306,
+      "igvc_lane_bev_pixels": 376,
+      "igvc_corridor_cells": 376,
+      "nav2_keepout_cells": 18585,
+      "top_classes": [
+        [
+          "building",
+          342908
+        ],
+        [
+          "car",
+          298323
+        ],
+        [
+          "sky",
+          112093
+        ],
+        [
+          "road",
+          103962
+        ],
+        [
+          "sidewalk",
+          29883
+        ],
+        [
+          "vegetation",
+          16638
+        ],
+        [
+          "person",
+          9097
+        ],
+        [
+          "bicycle",
+          4579
+        ]
+      ]
+    },
+    {
+      "image": "/home/alexander/Desktop/img/ac6d4f42-00000000.jpg",
+      "road_pixels_raw": 381922,
+      "road_pixels_refined": 397453,
+      "lane_hint_pixels": 1216,
+      "igvc_white_pixels": 1615,
+      "igvc_lane_bev_pixels": 45,
+      "igvc_corridor_cells": 45,
+      "nav2_keepout_cells": 18970,
+      "top_classes": [
+        [
+          "road",
+          381922
+        ],
+        [
+          "building",
+          265399
+        ],
+        [
+          "sky",
+          151863
+        ],
+        [
+          "vegetation",
+          31029
+        ],
+        [
+          "truck",
+          26884
+        ],
+        [
+          "pole",
+          19201
+        ],
+        [
+          "sidewalk",
+          19148
+        ],
+        [
+          "car",
+          18576
+        ]
+      ]
+    },
+    {
+      "image": "/home/alexander/Desktop/img/ac6e638d-7c84846d.jpg",
+      "road_pixels_raw": 174803,
+      "road_pixels_refined": 186361,
+      "lane_hint_pixels": 13697,
+      "igvc_white_pixels": 16121,
+      "igvc_lane_bev_pixels": 1107,
+      "igvc_corridor_cells": 1107,
+      "nav2_keepout_cells": 17020,
+      "top_classes": [
+        [
+          "vegetation",
+          269776
+        ],
+        [
+          "building",
+          214104
+        ],
+        [
+          "road",
+          174803
+        ],
+        [
+          "sky",
+          121863
+        ],
+        [
+          "car",
+          94189
+        ],
+        [
+          "sidewalk",
+          25802
+        ],
+        [
+          "motorcycle",
+          9719
+        ],
+        [
+          "pole",
+          6022
+        ]
+      ]
+    }
+  ]
+}
