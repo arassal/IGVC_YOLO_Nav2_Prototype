@@ -180,8 +180,7 @@
     <p class="lead">
       Reference page for the current camera and lane-perception setup. The final target is
       <strong>front + left + right</strong>. The back camera is intentionally out of scope. This page is
-      safe to keep in the repo as the single place to check stream URLs, live layout, and current
-      system status.
+      the single place to check live camera streams, lane segmentation, and current camera status.
     </p>
 
     <section class="panel">
@@ -189,7 +188,7 @@
       <div class="config-grid">
         <div class="field">
           <label for="streamBase">Jetson stream base URL</label>
-          <input id="streamBase" value="http://100.93.121.3:8080" />
+          <input id="streamBase" value="https://dinosaur.tail808f0a.ts.net" />
           <p class="hint" style="margin-top:8px;">
             Use the Jetson web stream host here. For a GitHub-hosted HTTPS page, embedded live video
             only works cleanly if this base URL is also HTTPS.
@@ -212,8 +211,8 @@
         <a class="button" href="../README.md">Open README</a>
       </div>
       <p class="status" id="status" style="margin-top:12px;">
-        Front stream is the currently validated live path. Left and right are reserved for when those
-        ZED X cameras are available. Back camera is intentionally omitted.
+        Left and front are currently validated live paths over the Jetson HTTPS stream. Right is enabled
+        in software, but the SDK does not currently detect the hardware. Back camera is intentionally omitted.
       </p>
     </section>
 
@@ -223,9 +222,9 @@
         <article class="camera-card">
           <header>
             <div class="title">Left ZED X</div>
-            <div class="state">Reserved slot</div>
+            <div class="state" id="leftState">Live side feed</div>
           </header>
-          <div class="placeholder">Left camera reserved for final system.<br>Bring up when lab hardware is available.</div>
+          <div id="leftContainer"></div>
         </article>
 
         <article class="camera-card">
@@ -239,9 +238,9 @@
         <article class="camera-card">
           <header>
             <div class="title">Right ZED X</div>
-            <div class="state">Reserved slot</div>
+            <div class="state">Camera not detected</div>
           </header>
-          <div class="placeholder">Right camera reserved for final system.<br>Bring up when lab hardware is available.</div>
+          <div class="placeholder">Right camera is enabled in launch config,<br>but the ZED SDK is not detecting the device right now.</div>
         </article>
       </div>
     </section>
@@ -259,7 +258,8 @@
       <h2>Current Assumptions</h2>
       <ul>
         <li>Primary competition lane following uses the front camera first.</li>
-        <li>Left and right cameras are planned into the final UI and pipeline, but not required to render this page.</li>
+        <li>Left camera is available as a live supporting view.</li>
+        <li>Right camera is enabled in software but not currently detected by the SDK.</li>
         <li>Back camera is not part of the final product.</li>
         <li>This dashboard is for quick reference. Heavy debug tools should still stay off in race mode.</li>
       </ul>
@@ -268,8 +268,9 @@
 
   <script>
     const defaults = {
-      streamBase: 'http://100.93.121.3:8080',
+      streamBase: 'https://dinosaur.tail808f0a.ts.net',
       embedMode: 'img',
+      leftTopic: '/zed_left/zed_node/rgb/color/rect/image',
       frontTopic: '/zed_front/zed_node/rgb/color/rect/image',
       segTopic: '/lane_detector/debug_mask'
     };
@@ -279,9 +280,11 @@
       embedMode: document.getElementById('embedMode'),
       apply: document.getElementById('apply'),
       defaults: document.getElementById('defaults'),
+      leftContainer: document.getElementById('leftContainer'),
       frontContainer: document.getElementById('frontContainer'),
       segContainer: document.getElementById('segContainer'),
       status: document.getElementById('status'),
+      leftState: document.getElementById('leftState'),
       frontState: document.getElementById('frontState')
     };
 
@@ -302,6 +305,7 @@
     function render() {
       const base = els.streamBase.value.trim() || defaults.streamBase;
       const mode = els.embedMode.value;
+      const left = streamUrl(base, defaults.leftTopic);
       const front = streamUrl(base, defaults.frontTopic);
       const seg = streamUrl(base, defaults.segTopic);
 
@@ -309,14 +313,18 @@
       localStorage.setItem('igvcEmbedMode', mode);
 
       if (canEmbed(base, mode)) {
+        els.leftContainer.innerHTML = `<img class="stream-frame" src="${left}" alt="Left live stream">`;
         els.frontContainer.innerHTML = `<img class="stream-frame" src="${front}" alt="Front live stream">`;
         els.segContainer.innerHTML = `<img src="${seg}" alt="Front segmentation stream">`;
         els.status.innerHTML = `Using <code>${base}</code> for embedded streams.`;
+        els.leftState.textContent = 'Live side feed';
         els.frontState.textContent = 'Live primary feed';
       } else {
+        els.leftContainer.innerHTML = directLink('Embedded view disabled by browser security policy.', left);
         els.frontContainer.innerHTML = directLink('Embedded view disabled by browser security policy.', front);
         els.segContainer.innerHTML = directLink('Open segmentation stream directly.', seg);
         els.status.innerHTML = `Embedded live video is disabled for <code>${base}</code>. If this page is served over HTTPS, browsers will block embedded HTTP streams. Use direct links or expose the Jetson stream over HTTPS.`;
+        els.leftState.textContent = 'Direct link mode';
         els.frontState.textContent = 'Direct link mode';
       }
     }
