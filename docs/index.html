@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IGVC Perception Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0e1117;
+      --panel: #161b22;
+      --panel-2: #1f2630;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #9da7b3;
+      --accent: #58a6ff;
+      --warn: #d29922;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; margin-bottom: 10px; }
+    h2 { font-size: 18px; margin-bottom: 10px; }
+    p.lead {
+      color: var(--muted);
+      margin-bottom: 20px;
+      max-width: 980px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .config-grid,
+    .camera-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .config-grid {
+      grid-template-columns: 2fr 1fr;
+    }
+    .camera-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #0d1117;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    button,
+    a.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #08111b;
+      font-weight: 600;
+    }
+    .hint,
+    .status,
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .warn {
+      color: var(--warn);
+    }
+    .camera-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .camera-card header {
+      padding: 10px 12px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .camera-card .title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .camera-card .state {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .stream-frame,
+    .placeholder {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 0;
+      display: block;
+      background: #000;
+    }
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 16px;
+      text-align: center;
+      padding: 12px;
+    }
+    .seg-panel img,
+    .seg-panel iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+      border: 0;
+      background: #000;
+    }
+    ul {
+      margin: 10px 0 0 18px;
+      color: var(--muted);
+      padding: 0;
+    }
+    code {
+      font-family: monospace;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #c9d1d9;
+    }
+    @media (max-width: 1000px) {
+      .config-grid,
+      .camera-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>IGVC Perception Dashboard</h1>
+    <p class="lead">
+      Reference page for the current camera and lane-perception setup. The final target is
+      <strong>front + left + right</strong>. The back camera is intentionally out of scope. This page is
+      safe to keep in the repo as the single place to check stream URLs, live layout, and current
+      system status.
+    </p>
+
+    <section class="panel">
+      <h2>Stream Configuration</h2>
+      <div class="config-grid">
+        <div class="field">
+          <label for="streamBase">Jetson stream base URL</label>
+          <input id="streamBase" value="http://100.93.121.3:8080" />
+          <p class="hint" style="margin-top:8px;">
+            Use the Jetson web stream host here. For a GitHub-hosted HTTPS page, embedded live video
+            only works cleanly if this base URL is also HTTPS.
+          </p>
+        </div>
+        <div class="field">
+          <label for="embedMode">Embed mode</label>
+          <select id="embedMode">
+            <option value="img">MJPEG image stream</option>
+            <option value="link">Links only</option>
+          </select>
+          <p class="hint" style="margin-top:8px;">
+            Switch to links only if your browser blocks mixed HTTP content.
+          </p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="apply" class="primary">Apply Stream Base</button>
+        <button id="defaults">Reset Defaults</button>
+        <a class="button" href="../README.md">Open README</a>
+      </div>
+      <p class="status" id="status" style="margin-top:12px;">
+        Front stream is the currently validated live path. Left and right are reserved for when those
+        ZED X cameras are available. Back camera is intentionally omitted.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Camera Layout</h2>
+      <div class="camera-grid">
+        <article class="camera-card">
+          <header>
+            <div class="title">Left ZED X</div>
+            <div class="state">Reserved slot</div>
+          </header>
+          <div class="placeholder">Left camera reserved for final system.<br>Bring up when lab hardware is available.</div>
+        </article>
+
+        <article class="camera-card">
+          <header>
+            <div class="title">Front ZED X</div>
+            <div class="state" id="frontState">Live primary feed</div>
+          </header>
+          <div id="frontContainer"></div>
+        </article>
+
+        <article class="camera-card">
+          <header>
+            <div class="title">Right ZED X</div>
+            <div class="state">Reserved slot</div>
+          </header>
+          <div class="placeholder">Right camera reserved for final system.<br>Bring up when lab hardware is available.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel seg-panel">
+      <h2>Front Lane Segmentation</h2>
+      <div id="segContainer"></div>
+      <p class="small" style="margin-top:10px;">
+        Current live output is the front lane segmentation mask from <code>/lane_detector/debug_mask</code>.
+        When a stable overlay topic exists later, this panel can point at that instead with no layout change.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Current Assumptions</h2>
+      <ul>
+        <li>Primary competition lane following uses the front camera first.</li>
+        <li>Left and right cameras are planned into the final UI and pipeline, but not required to render this page.</li>
+        <li>Back camera is not part of the final product.</li>
+        <li>This dashboard is for quick reference. Heavy debug tools should still stay off in race mode.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script>
+    const defaults = {
+      streamBase: 'http://100.93.121.3:8080',
+      embedMode: 'img',
+      frontTopic: '/zed_front/zed_node/rgb/color/rect/image',
+      segTopic: '/lane_detector/debug_mask'
+    };
+
+    const els = {
+      streamBase: document.getElementById('streamBase'),
+      embedMode: document.getElementById('embedMode'),
+      apply: document.getElementById('apply'),
+      defaults: document.getElementById('defaults'),
+      frontContainer: document.getElementById('frontContainer'),
+      segContainer: document.getElementById('segContainer'),
+      status: document.getElementById('status'),
+      frontState: document.getElementById('frontState')
+    };
+
+    function streamUrl(base, topic) {
+      return `${base.replace(/\/$/, '')}/stream?topic=${encodeURIComponent(topic)}`;
+    }
+
+    function directLink(label, url) {
+      return `<div class="placeholder"><div><div style="margin-bottom:10px;">${label}</div><a class="button" href="${url}" target="_blank" rel="noopener noreferrer">Open Stream</a></div></div>`;
+    }
+
+    function canEmbed(base, mode) {
+      if (mode === 'link') return false;
+      if (window.location.protocol === 'https:' && base.startsWith('http://')) return false;
+      return true;
+    }
+
+    function render() {
+      const base = els.streamBase.value.trim() || defaults.streamBase;
+      const mode = els.embedMode.value;
+      const front = streamUrl(base, defaults.frontTopic);
+      const seg = streamUrl(base, defaults.segTopic);
+
+      localStorage.setItem('igvcStreamBase', base);
+      localStorage.setItem('igvcEmbedMode', mode);
+
+      if (canEmbed(base, mode)) {
+        els.frontContainer.innerHTML = `<img class="stream-frame" src="${front}" alt="Front live stream">`;
+        els.segContainer.innerHTML = `<img src="${seg}" alt="Front segmentation stream">`;
+        els.status.innerHTML = `Using <code>${base}</code> for embedded streams.`;
+        els.frontState.textContent = 'Live primary feed';
+      } else {
+        els.frontContainer.innerHTML = directLink('Embedded view disabled by browser security policy.', front);
+        els.segContainer.innerHTML = directLink('Open segmentation stream directly.', seg);
+        els.status.innerHTML = `Embedded live video is disabled for <code>${base}</code>. If this page is served over HTTPS, browsers will block embedded HTTP streams. Use direct links or expose the Jetson stream over HTTPS.`;
+        els.frontState.textContent = 'Direct link mode';
+      }
+    }
+
+    els.apply.addEventListener('click', render);
+    els.defaults.addEventListener('click', () => {
+      els.streamBase.value = defaults.streamBase;
+      els.embedMode.value = defaults.embedMode;
+      render();
+    });
+
+    els.streamBase.value = localStorage.getItem('igvcStreamBase') || defaults.streamBase;
+    els.embedMode.value = localStorage.getItem('igvcEmbedMode') || defaults.embedMode;
+    render();
+  </script>
+</body>
+</html>

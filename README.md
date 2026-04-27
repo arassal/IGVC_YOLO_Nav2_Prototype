@@ -16,6 +16,21 @@ camera image
 
 It is intentionally narrow. The main path is **lane boundaries and local navigation support**. Object detection can be layered on separately, but it is not the core of this repo.
 
+## Dashboard
+
+A static reference dashboard for the live camera layout and current stream assumptions lives at:
+
+- [docs/index.html](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/index.html)
+
+It is designed to be GitHub Pages-compatible and to keep the final layout stable:
+
+- `left` reserved
+- `front` primary live feed
+- `right` reserved
+- `back` intentionally omitted
+
+The dashboard also keeps the stream base URL configurable so it can point at the Jetson over Tailscale when available.
+
 ## What This Repo Does
 
 - extracts likely asphalt support from the lower image
