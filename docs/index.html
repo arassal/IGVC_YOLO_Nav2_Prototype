@@ -267,6 +267,11 @@
   </div>
 
   <script>
+    const storageKeys = {
+      streamBase: 'igvcStreamBaseV2',
+      embedMode: 'igvcEmbedModeV2'
+    };
+
     const defaults = {
       streamBase: 'https://dinosaur.tail808f0a.ts.net',
       embedMode: 'img',
@@ -309,8 +314,8 @@
       const front = streamUrl(base, defaults.frontTopic);
       const seg = streamUrl(base, defaults.segTopic);
 
-      localStorage.setItem('igvcStreamBase', base);
-      localStorage.setItem('igvcEmbedMode', mode);
+      localStorage.setItem(storageKeys.streamBase, base);
+      localStorage.setItem(storageKeys.embedMode, mode);
 
       if (canEmbed(base, mode)) {
         els.leftContainer.innerHTML = `<img class="stream-frame" src="${left}" alt="Left live stream">`;
@@ -336,8 +341,8 @@
       render();
     });
 
-    els.streamBase.value = localStorage.getItem('igvcStreamBase') || defaults.streamBase;
-    els.embedMode.value = localStorage.getItem('igvcEmbedMode') || defaults.embedMode;
+    els.streamBase.value = localStorage.getItem(storageKeys.streamBase) || defaults.streamBase;
+    els.embedMode.value = localStorage.getItem(storageKeys.embedMode) || defaults.embedMode;
     render();
   </script>
 </body>
