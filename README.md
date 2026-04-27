@@ -1,5 +1,9 @@
 # IGVC Nav2 BEV Perception
 
+Website:
+
+- https://arassal.github.io/IGVC_Nav2_SegFormer/
+
 ROS 2 Jazzy perception package for **IGVC-style lane boundaries** with a **BEV-first pipeline** and **Nav2-compatible keepout / drivable grids**.
 
 This repo is built around the architecture I would actually choose for IGVC:
@@ -20,7 +24,8 @@ It is intentionally narrow. The main path is **lane boundaries and local navigat
 
 A static reference dashboard for the live camera layout and current stream assumptions lives at:
 
-- [docs/index.html](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/index.html)
+- Public site: https://arassal.github.io/IGVC_Nav2_SegFormer/
+- Source file: [docs/index.html](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/index.html)
 
 It is designed to be GitHub Pages-compatible and to keep the final layout stable:
 
