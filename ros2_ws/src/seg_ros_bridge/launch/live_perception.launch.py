@@ -13,7 +13,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'node_script',
             default_value=(
-                '/home/alexander/Desktop/Competiton_Semantic_Segmentation/'
+                '/home/alexander/Desktop/IGVC_Nav2_SegFormer/'
                 'ros2_ws/src/seg_ros_bridge/seg_ros_bridge/live_perception_node.py'
             ),
             description='Path to the live perception node.',
@@ -25,18 +25,18 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'project_root',
-            default_value='/home/alexander/Desktop/seg',
+            default_value='/home/alexander/github/av-perception',
             description='Path to the YOLOPv2 source tree used for utility imports.',
         ),
         DeclareLaunchArgument(
             'segmentation_weights_path',
-            default_value='/home/alexander/Desktop/seg/data/weights/yolopv2.pt',
+            default_value='/home/alexander/github/av-perception/data/weights/yolopv2.pt',
             description='YOLOPv2 TorchScript checkpoint.',
         ),
         DeclareLaunchArgument(
             'object_model_path',
             default_value=(
-                '/home/alexander/Desktop/Competiton_Semantic_Segmentation/'
+                '/home/alexander/Desktop/IGVC_Nav2_SegFormer/'
                 'models/roboflow_logistics_yolov8.pt'
             ),
             description='YOLOv8 object detection checkpoint.',
@@ -58,6 +58,16 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument('publish_input_image', default_value='true'),
         DeclareLaunchArgument('publish_timing', default_value='true'),
+        DeclareLaunchArgument('nav2_publish_grid', default_value='true'),
+        DeclareLaunchArgument('nav2_grid_resolution', default_value='0.05'),
+        DeclareLaunchArgument('nav2_x_range', default_value='[0.0, 15.0]'),
+        DeclareLaunchArgument('nav2_y_range', default_value='[-10.0, 10.0]'),
+        DeclareLaunchArgument('src_bottom_y', default_value='0.98'),
+        DeclareLaunchArgument('src_top_y', default_value='0.62'),
+        DeclareLaunchArgument('src_bottom_left_x', default_value='0.05'),
+        DeclareLaunchArgument('src_bottom_right_x', default_value='0.95'),
+        DeclareLaunchArgument('src_top_left_x', default_value='0.35'),
+        DeclareLaunchArgument('src_top_right_x', default_value='0.65'),
 
         ExecuteProcess(
             cmd=[
@@ -80,6 +90,16 @@ def generate_launch_description():
                 '-p', ['process_every_n:=', LaunchConfiguration('process_every_n')],
                 '-p', ['publish_input_image:=', LaunchConfiguration('publish_input_image')],
                 '-p', ['publish_timing:=', LaunchConfiguration('publish_timing')],
+                '-p', ['nav2_publish_grid:=', LaunchConfiguration('nav2_publish_grid')],
+                '-p', ['nav2_grid_resolution:=', LaunchConfiguration('nav2_grid_resolution')],
+                '-p', ['nav2_x_range:=', LaunchConfiguration('nav2_x_range')],
+                '-p', ['nav2_y_range:=', LaunchConfiguration('nav2_y_range')],
+                '-p', ['src_bottom_y:=', LaunchConfiguration('src_bottom_y')],
+                '-p', ['src_top_y:=', LaunchConfiguration('src_top_y')],
+                '-p', ['src_bottom_left_x:=', LaunchConfiguration('src_bottom_left_x')],
+                '-p', ['src_bottom_right_x:=', LaunchConfiguration('src_bottom_right_x')],
+                '-p', ['src_top_left_x:=', LaunchConfiguration('src_top_left_x')],
+                '-p', ['src_top_right_x:=', LaunchConfiguration('src_top_right_x')],
             ],
             output='screen',
         ),

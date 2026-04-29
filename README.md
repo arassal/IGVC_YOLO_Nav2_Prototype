@@ -1,124 +1,104 @@
-# IGVC Nav2 BEV Perception
+# IGVC YOLO ROS2 Nav2 Prototype
 
-Website:
+Public dashboard:
 
 - https://arassal.github.io/IGVC_Nav2_SegFormer/
 
-ROS 2 Jazzy perception package for **IGVC-style lane boundaries** with a **BEV-first pipeline** and **Nav2-compatible keepout / drivable grids**.
+Working branch for this prototype:
 
-This repo is built around the architecture I would actually choose for IGVC:
+- `codex/yolo-nav2-rebuild`
+
+Rebuild contract for another agent:
+
+- [docs/rebuild_contract.md](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/rebuild_contract.md)
+
+This repository is the current ROS 2 / Nav2 prototype for IGVC-style lane following with:
+
+- `YOLOPv2` for drivable area and lane segmentation
+- `YOLOv8` for obstacle blocking
+- a Nav2-facing BEV keepout/drivable grid
+
+The target path is:
 
 ```text
-camera image
--> asphalt / line extraction
--> bird's-eye-view lane boundaries
--> lane corridor estimate
--> local drivable grid
--> local keepout grid
--> Nav2 costmap filter messages
+front ZED image
+-> YOLOPv2 drivable + lane masks
+-> YOLOv8 obstacle removal
+-> BEV projection
+-> OccupancyGrid + CostmapFilterInfo
+-> Nav2 local costmap
 ```
 
-It is intentionally narrow. The main path is **lane boundaries and local navigation support**. Object detection can be layered on separately, but it is not the core of this repo.
+The repo also includes a local testing dashboard for:
 
-## Dashboard
+- left raw
+- front raw
+- right raw
+- left/front/right semantic mask panels
+- combined BEV
 
-A static reference dashboard for the live camera layout and current stream assumptions lives at:
+## What matters
 
-- Public site: https://arassal.github.io/IGVC_Nav2_SegFormer/
-- Source file: [docs/index.html](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/index.html)
+The primary deliverable is not the UI. It is the ROS 2 / Nav2 contract.
 
-It is designed to be GitHub Pages-compatible and to keep the final layout stable:
+This branch is considered usable when it does these things cleanly:
 
-- `left` reserved
-- `front` primary live feed
-- `right` reserved
-- `back` intentionally omitted
+- builds in ROS 2 Jazzy
+- subscribes to a live ZED image topic
+- publishes drivable and lane masks
+- publishes Nav2-compatible `OccupancyGrid`
+- publishes Nav2-compatible `CostmapFilterInfo`
+- keeps the output frame in `base_link`
 
-The dashboard also keeps the stream base URL configurable so it can point at the Jetson over Tailscale when available.
-
-## What This Repo Does
-
-- extracts likely asphalt support from the lower image
-- extracts white and yellow lane paint candidates
-- projects those cues into bird's-eye view
-- selects left and right lane boundary components
-- builds a lane corridor
-- publishes:
-  - debug images for RViz
-  - `nav_msgs/msg/OccupancyGrid`
-  - `nav2_msgs/msg/CostmapFilterInfo`
-  - lane state and planner mode hints
-
-## Why This Architecture
-
-For IGVC, the hard part is usually not generic semantic segmentation. It is:
-
-- stable white boundary handling
-- planner-safe top-down outputs
-- simple failure behavior when lane evidence is weak
-
-That is why this repo is BEV-first and Nav2-first.
-
-## ROS 2 Interface
+## Main ROS node
 
 Primary node:
 
-- `igvc_bev_node`
+- `live_perception_node`
 
-Main topics:
+Source:
 
-| Topic | Type | Purpose |
-|---|---|---|
-| `/igvc_bev/input_image` | `sensor_msgs/msg/Image` | republished source image |
-| `/igvc_bev/overlay_image` | `sensor_msgs/msg/Image` | lane and corridor overlay |
-| `/igvc_bev/asphalt_mask` | `sensor_msgs/msg/Image` | asphalt support mask |
-| `/igvc_bev/white_mask` | `sensor_msgs/msg/Image` | white-line candidate mask |
-| `/igvc_bev/yellow_mask` | `sensor_msgs/msg/Image` | yellow-line candidate mask |
-| `/igvc_bev/lane_hint_mask` | `sensor_msgs/msg/Image` | combined paint cue mask |
-| `/igvc_bev/lane_bev` | `sensor_msgs/msg/Image` | bird's-eye lane evidence |
-| `/igvc_bev/lane_corridor_mask` | `sensor_msgs/msg/Image` | fused lane corridor in BEV |
-| `/igvc_bev/road_bev` | `sensor_msgs/msg/Image` | BEV drivable prior |
-| `/igvc_bev/lane_detected` | `std_msgs/msg/Bool` | lane corridor strong enough to trust |
-| `/igvc_bev/planner_mode_hint` | `std_msgs/msg/String` | `lane_following` or `obstacle_avoidance` |
-| `/igvc_bev/nav2/bev_keepout_mask` | `sensor_msgs/msg/Image` | top-down keepout debug image |
-| `/igvc_bev/nav2/filter_mask` | `nav_msgs/msg/OccupancyGrid` | Nav2 keepout filter mask |
-| `/igvc_bev/nav2/drivable_grid` | `nav_msgs/msg/OccupancyGrid` | local drivable-vs-nondrivable grid |
-| `/igvc_bev/nav2/costmap_filter_info` | `nav2_msgs/msg/CostmapFilterInfo` | Nav2 keepout metadata |
-| `/igvc_bev/metadata` | `std_msgs/msg/String` | runtime and pixel/cell counts |
-| `/igvc_bev/timing` | `std_msgs/msg/String` | per-frame timing |
+- [live_perception_node.py](/home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws/src/seg_ros_bridge/seg_ros_bridge/live_perception_node.py)
 
-## Nav2 Compatibility
+Launch:
 
-This repo publishes the **exact message types Nav2 keepout filters expect**:
+- [live_perception.launch.py](/home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws/src/seg_ros_bridge/launch/live_perception.launch.py)
 
-- `nav_msgs/msg/OccupancyGrid`
-- `nav2_msgs/msg/CostmapFilterInfo`
+## ROS 2 interface
 
-The `CostmapFilterInfo.type` is published as `0`, which is the keepout / preferred-lane filter type in Nav2 docs.
+Image/debug topics:
 
-Relevant references:
+- `/seg_ros/live/input_image`
+- `/seg_ros/live/overlay_image`
+- `/seg_ros/live/drivable_mask`
+- `/seg_ros/live/lane_mask`
+- `/seg_ros/live/lane_confidence`
+- `/seg_ros/live/nav2/bev_debug`
 
-- https://api.nav2.org/msgs/jazzy/costmapfilterinfo.html
-- https://docs.nav2.org/configuration/packages/costmap-plugins/keepout_filter.html
-- https://docs.nav2.org/tutorials/docs/navigation2_with_keepout_filter.html
+Metadata topics:
 
-Example local costmap config:
+- `/seg_ros/live/detections`
+- `/seg_ros/live/timing`
+- `/seg_ros/live/label_info`
 
-- [nav2_keepout_example.yaml](/home/alexander/Desktop/IGVC_Nav2_SegFormer/config/nav2_keepout_example.yaml)
+Nav2 topics:
 
-## Proof Images
+- `/seg_ros/live/nav2/filter_mask`
+- `/seg_ros/live/nav2/drivable_grid`
+- `/seg_ros/live/nav2/costmap_filter_info`
 
-Generated from `/home/alexander/Desktop/img`:
+Nav2 message types:
 
-```text
-raw input | asphalt mask | white mask | lane hint | lane bev | lane corridor | nav2 keepout | overlay
-```
+- `/seg_ros/live/nav2/filter_mask` -> `nav_msgs/msg/OccupancyGrid`
+- `/seg_ros/live/nav2/drivable_grid` -> `nav_msgs/msg/OccupancyGrid`
+- `/seg_ros/live/nav2/costmap_filter_info` -> `nav2_msgs/msg/CostmapFilterInfo`
 
-![IGVC BEV proof](proof/igvc_bev/igvc_bev_contact_sheet.jpg)
+Frame assumptions:
 
-Per-run summary:
-
-- [igvc_bev_summary.json](/home/alexander/Desktop/IGVC_Nav2_SegFormer/proof/igvc_bev/igvc_bev_summary.json)
+- published grid frame: `base_link`
+- grid origin:
+  - `x = nav2_x_range[0]`
+  - `y = nav2_y_range[0]`
 
 ## Build
 
@@ -129,60 +109,84 @@ colcon build --packages-select seg_ros_bridge
 source install/setup.bash
 ```
 
-## Demo With Recorded Images
+## Live launch
 
 ```bash
 cd /home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 
-ros2 launch seg_ros_bridge igvc_bev_demo.launch.py \
-  image_dir:=/home/alexander/Desktop/img \
-  fps:=1.0 \
-  use_rviz:=true
+ros2 launch seg_ros_bridge live_perception.launch.py \
+  image_topic:=/zed_front/zed_node/rgb/color/rect/image \
+  device:=cuda:0
 ```
 
-This launch does three things:
-
-- replays images as a ROS topic
-- runs `igvc_bev_node`
-- opens RViz with the BEV lane displays and Nav2 grids
-
-## Live Camera Run
+If GPU is not available:
 
 ```bash
-cd /home/alexander/Desktop/IGVC_Nav2_SegFormer/ros2_ws
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-
-ros2 launch seg_ros_bridge igvc_bev.launch.py \
-  image_topic:=/zed/zed_node/rgb/color/rect/image \
-  use_rviz:=true
+ros2 launch seg_ros_bridge live_perception.launch.py \
+  image_topic:=/zed_front/zed_node/rgb/color/rect/image \
+  device:=cpu
 ```
 
-## Generate Proof Again
+## Required external weights
 
-```bash
-cd /home/alexander/Desktop/IGVC_Nav2_SegFormer
-python3 scripts/generate_igvc_bev_proof.py \
-  --input-dir /home/alexander/Desktop/img \
-  --output-dir proof/igvc_bev \
-  --limit 6
+YOLOPv2 weights:
+
+- `/home/alexander/github/av-perception/data/weights/yolopv2.pt`
+
+YOLOv8 object weights:
+
+- [models/roboflow_logistics_yolov8.pt](/home/alexander/Desktop/IGVC_Nav2_SegFormer/models/roboflow_logistics_yolov8.pt)
+
+Weight notes:
+
+- [models/README.md](/home/alexander/Desktop/IGVC_Nav2_SegFormer/models/README.md)
+
+## Dashboard
+
+Local dashboard runner:
+
+- [run_yolo_live_dashboard.py](/home/alexander/Desktop/IGVC_Nav2_SegFormer/scripts/run_yolo_live_dashboard.py)
+
+Current layout:
+
+- row 1: left raw | front raw | right raw
+- row 2: left semantic | front semantic | right semantic
+- row 3: combined BEV
+
+This is for testing only. Nav2 compatibility is determined by the ROS topics above, not by the browser output.
+
+## What another agent must preserve
+
+If another agent rebuilds this, the following must remain true:
+
+1. `live_perception_node` stays the ROS entry point
+2. Nav2 topics keep the same names
+3. Nav2 topics keep the same message types
+4. `CostmapFilterInfo.filter_mask_topic` points to `/seg_ros/live/nav2/filter_mask`
+5. grid frame remains `base_link`
+6. drivable space is reduced by detected obstacles before grid publication
+7. launch file exposes the BEV/grid parameters
+
+## Verification status
+
+Verified locally on this branch:
+
+- `python3 -m py_compile` passes for the live node
+- `colcon build --packages-select seg_ros_bridge` passes
+- the node now contains a Nav2-facing occupancy-grid path
+
+Not yet honestly field-verified:
+
+- final on-car latency
+- final BEV trapezoid tuning
+- full Nav2 behavior on the vehicle
+
+So the right claim is:
+
+```text
+ROS 2 compatible: yes
+Nav2 interface compatible: yes
+field-proven on the car: not yet
 ```
-
-## Current Boundaries
-
-What is interface-proven in this repo:
-
-- ROS 2 nodes and launches build
-- Nav2 keepout message types are correct
-- local keepout and drivable grids publish in `base_link`
-- replay workflow works from an image folder
-
-What still requires vehicle validation:
-
-- final BEV trapezoid tuning for the mounted ZED X camera
-- lane reliability under glare, shadows, worn paint, and turns
-- actual Nav2 behavior on the robot
-
-This is the cleanest version of the system I would start from for IGVC: **lane-first, BEV-first, and local-planner-facing**.

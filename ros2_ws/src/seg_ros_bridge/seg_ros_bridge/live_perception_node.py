@@ -8,6 +8,8 @@ import numpy as np
 import rclpy
 import torch
 from cv_bridge import CvBridge
+from nav2_msgs.msg import CostmapFilterInfo
+from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Image
@@ -16,10 +18,10 @@ from ultralytics import YOLO
 from vision_msgs.msg import LabelInfo, VisionClass
 
 
-DEFAULT_PROJECT_ROOT = '/home/alexander/Desktop/seg'
-DEFAULT_SEG_WEIGHTS = '/home/alexander/Desktop/seg/data/weights/yolopv2.pt'
+DEFAULT_PROJECT_ROOT = '/home/alexander/github/av-perception'
+DEFAULT_SEG_WEIGHTS = '/home/alexander/github/av-perception/data/weights/yolopv2.pt'
 DEFAULT_OBJECT_MODEL = (
-    '/home/alexander/Desktop/Competiton_Semantic_Segmentation/'
+    '/home/alexander/Desktop/IGVC_Nav2_SegFormer/'
     'models/roboflow_logistics_yolov8.pt'
 )
 DEFAULT_CLASSES = [
@@ -53,6 +55,16 @@ class LivePerceptionNode(Node):
         self.declare_parameter('process_every_n', 1)
         self.declare_parameter('publish_input_image', True)
         self.declare_parameter('publish_timing', True)
+        self.declare_parameter('nav2_publish_grid', True)
+        self.declare_parameter('nav2_grid_resolution', 0.05)
+        self.declare_parameter('nav2_x_range', [0.0, 15.0])
+        self.declare_parameter('nav2_y_range', [-10.0, 10.0])
+        self.declare_parameter('src_bottom_y', 0.98)
+        self.declare_parameter('src_top_y', 0.62)
+        self.declare_parameter('src_bottom_left_x', 0.05)
+        self.declare_parameter('src_bottom_right_x', 0.95)
+        self.declare_parameter('src_top_left_x', 0.35)
+        self.declare_parameter('src_top_right_x', 0.65)
 
         self.image_topic = self.get_parameter('image_topic').value
         self.project_root = self.get_parameter('project_root').value
@@ -69,6 +81,25 @@ class LivePerceptionNode(Node):
         self.process_every_n = max(1, int(self.get_parameter('process_every_n').value))
         self.publish_input_image = bool(self.get_parameter('publish_input_image').value)
         self.publish_timing = bool(self.get_parameter('publish_timing').value)
+        self.nav2_publish_grid = bool(self.get_parameter('nav2_publish_grid').value)
+        self.nav2_grid_resolution = float(self.get_parameter('nav2_grid_resolution').value)
+        self.nav2_x_range = [float(v) for v in self.get_parameter('nav2_x_range').value]
+        self.nav2_y_range = [float(v) for v in self.get_parameter('nav2_y_range').value]
+        self.src_bottom_y = float(self.get_parameter('src_bottom_y').value)
+        self.src_top_y = float(self.get_parameter('src_top_y').value)
+        self.src_bottom_left_x = float(self.get_parameter('src_bottom_left_x').value)
+        self.src_bottom_right_x = float(self.get_parameter('src_bottom_right_x').value)
+        self.src_top_left_x = float(self.get_parameter('src_top_left_x').value)
+        self.src_top_right_x = float(self.get_parameter('src_top_right_x').value)
+
+        self.nav2_x_min, self.nav2_x_max = self.nav2_x_range
+        self.nav2_y_min, self.nav2_y_max = self.nav2_y_range
+        self.nav2_grid_width_m = self.nav2_y_max - self.nav2_y_min
+        self.nav2_grid_length_m = self.nav2_x_max - self.nav2_x_min
+        self.nav2_grid_width_cells = max(
+            1, int(round(self.nav2_grid_width_m / self.nav2_grid_resolution)))
+        self.nav2_grid_height_cells = max(
+            1, int(round(self.nav2_grid_length_m / self.nav2_grid_resolution)))
 
         self._validate_paths()
         self._load_yolopv2_utils()
@@ -78,22 +109,29 @@ class LivePerceptionNode(Node):
         self.frame_count = 0
         self.last_label_publish = 0.0
 
-        self.input_pub = self.create_publisher(
-            Image, '/seg_ros/live/input_image', 10)
-        self.overlay_pub = self.create_publisher(
-            Image, '/seg_ros/live/overlay_image', 10)
-        self.drivable_pub = self.create_publisher(
-            Image, '/seg_ros/live/drivable_mask', 10)
-        self.lane_pub = self.create_publisher(
-            Image, '/seg_ros/live/lane_mask', 10)
+        self.input_pub = self.create_publisher(Image, '/seg_ros/live/input_image', 10)
+        self.overlay_pub = self.create_publisher(Image, '/seg_ros/live/overlay_image', 10)
+        self.drivable_pub = self.create_publisher(Image, '/seg_ros/live/drivable_mask', 10)
+        self.lane_pub = self.create_publisher(Image, '/seg_ros/live/lane_mask', 10)
         self.lane_confidence_pub = self.create_publisher(
             Image, '/seg_ros/live/lane_confidence', 10)
+        self.bev_pub = self.create_publisher(Image, '/seg_ros/live/nav2/bev_debug', 10)
 
         label_qos = QoSProfile(depth=1)
         label_qos.reliability = ReliabilityPolicy.RELIABLE
         label_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self.label_pub = self.create_publisher(
             LabelInfo, '/seg_ros/live/label_info', label_qos)
+
+        nav2_qos = QoSProfile(depth=1)
+        nav2_qos.reliability = ReliabilityPolicy.RELIABLE
+        nav2_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.nav2_mask_pub = self.create_publisher(
+            OccupancyGrid, '/seg_ros/live/nav2/filter_mask', nav2_qos)
+        self.nav2_drivable_pub = self.create_publisher(
+            OccupancyGrid, '/seg_ros/live/nav2/drivable_grid', nav2_qos)
+        self.nav2_filter_info_pub = self.create_publisher(
+            CostmapFilterInfo, '/seg_ros/live/nav2/costmap_filter_info', nav2_qos)
 
         self.detection_pub = self.create_publisher(
             String, '/seg_ros/live/detections', 10)
@@ -104,6 +142,7 @@ class LivePerceptionNode(Node):
             Image, self.image_topic, self._image_cb, 10)
 
         self._publish_label_info()
+        self._publish_filter_info()
         self.get_logger().info(f'Subscribed to live image topic: {self.image_topic}')
         self.get_logger().info(
             'Publishing live perception outputs under /seg_ros/live/*')
@@ -180,6 +219,9 @@ class LivePerceptionNode(Node):
         try:
             overlay, da_mask, ll_mask, seg_detections = self._run_segmentation(frame)
             object_detections = self._run_object_detection(frame)
+            filtered_drivable, keepout_mask, drivable_grid, bev_debug = (
+                self._build_nav2_products(frame, da_mask, ll_mask, object_detections)
+            )
         except Exception as exc:
             self.get_logger().warning(f'Live perception inference failed: {exc}')
             return
@@ -188,8 +230,23 @@ class LivePerceptionNode(Node):
         for det in object_detections:
             self._draw_detection(combined_overlay, det)
 
-        self._publish_images(msg, frame, combined_overlay, da_mask, ll_mask)
-        self._publish_detections(msg, seg_detections, object_detections, start)
+        self._publish_images(
+            msg,
+            frame,
+            combined_overlay,
+            filtered_drivable,
+            ll_mask,
+            bev_debug,
+        )
+        self._publish_nav2_grids(msg, keepout_mask, drivable_grid)
+        self._publish_detections(
+            msg,
+            seg_detections,
+            object_detections,
+            keepout_mask,
+            drivable_grid,
+            start,
+        )
         self._publish_label_info_throttled()
 
     def _run_segmentation(self, frame):
@@ -273,7 +330,64 @@ class LivePerceptionNode(Node):
             })
         return detections
 
-    def _publish_images(self, source_msg, frame, overlay, da_mask, ll_mask):
+    def _build_nav2_products(self, frame, da_mask, ll_mask, object_detections):
+        filtered_drivable = np.where(da_mask > 0, 255, 0).astype(np.uint8)
+
+        # Remove detected dynamic / static obstacles from drivable space.
+        for det in object_detections:
+            x1, y1, x2, y2 = [int(round(v)) for v in det['xyxy']]
+            x1 = max(0, min(frame.shape[1] - 1, x1))
+            y1 = max(0, min(frame.shape[0] - 1, y1))
+            x2 = max(0, min(frame.shape[1], x2))
+            y2 = max(0, min(frame.shape[0], y2))
+            if x2 > x1 and y2 > y1:
+                cv2.rectangle(filtered_drivable, (x1, y1), (x2, y2), 0, thickness=-1)
+
+        filtered_drivable = cv2.morphologyEx(
+            filtered_drivable, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+        lane_mask = np.where(ll_mask > 0, 255, 0).astype(np.uint8)
+
+        transform = self._nav2_perspective_transform(frame.shape[1], frame.shape[0])
+        drivable_grid = cv2.warpPerspective(
+            filtered_drivable,
+            transform,
+            (self.nav2_grid_width_cells, self.nav2_grid_height_cells),
+            flags=cv2.INTER_NEAREST,
+        )
+        lane_grid = cv2.warpPerspective(
+            lane_mask,
+            transform,
+            (self.nav2_grid_width_cells, self.nav2_grid_height_cells),
+            flags=cv2.INTER_NEAREST,
+        )
+
+        drivable_grid = cv2.morphologyEx(
+            drivable_grid, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+        drivable_grid = cv2.bitwise_or(drivable_grid, lane_grid)
+        keepout_mask = np.where(drivable_grid > 0, 0, 100).astype(np.uint8)
+
+        bev_debug = np.zeros((self.nav2_grid_height_cells, self.nav2_grid_width_cells, 3), dtype=np.uint8)
+        bev_debug[drivable_grid > 0] = (255, 255, 255)
+        bev_debug[lane_grid > 0] = (0, 255, 255)
+
+        return filtered_drivable, keepout_mask, drivable_grid, bev_debug
+
+    def _nav2_perspective_transform(self, width, height):
+        src = np.float32([
+            [width * self.src_bottom_left_x, height * self.src_bottom_y],
+            [width * self.src_bottom_right_x, height * self.src_bottom_y],
+            [width * self.src_top_right_x, height * self.src_top_y],
+            [width * self.src_top_left_x, height * self.src_top_y],
+        ])
+        dst = np.float32([
+            [0, self.nav2_grid_height_cells - 1],
+            [self.nav2_grid_width_cells - 1, self.nav2_grid_height_cells - 1],
+            [self.nav2_grid_width_cells - 1, 0],
+            [0, 0],
+        ])
+        return cv2.getPerspectiveTransform(src, dst)
+
+    def _publish_images(self, source_msg, frame, overlay, da_mask, ll_mask, bev_debug):
         if self.publish_input_image:
             input_msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
             input_msg.header = source_msg.header
@@ -284,11 +398,11 @@ class LivePerceptionNode(Node):
         self.overlay_pub.publish(overlay_msg)
 
         drivable_msg = self.bridge.cv2_to_imgmsg(
-            (da_mask * 255).astype(np.uint8), encoding='mono8')
+            da_mask.astype(np.uint8), encoding='mono8')
         drivable_msg.header = source_msg.header
         self.drivable_pub.publish(drivable_msg)
 
-        lane_mask = (ll_mask * 255).astype(np.uint8)
+        lane_mask = ll_mask.astype(np.uint8)
         lane_msg = self.bridge.cv2_to_imgmsg(lane_mask, encoding='mono8')
         lane_msg.header = source_msg.header
         self.lane_pub.publish(lane_msg)
@@ -297,7 +411,42 @@ class LivePerceptionNode(Node):
         confidence_msg.header = source_msg.header
         self.lane_confidence_pub.publish(confidence_msg)
 
-    def _publish_detections(self, source_msg, seg_detections, object_detections, start):
+        bev_msg = self.bridge.cv2_to_imgmsg(bev_debug, encoding='bgr8')
+        bev_msg.header = source_msg.header
+        self.bev_pub.publish(bev_msg)
+
+    def _build_grid_message(self, source_msg, grid_data):
+        grid = OccupancyGrid()
+        grid.header.stamp = source_msg.header.stamp
+        grid.header.frame_id = 'base_link'
+        grid.info.resolution = self.nav2_grid_resolution
+        grid.info.width = self.nav2_grid_width_cells
+        grid.info.height = self.nav2_grid_height_cells
+        grid.info.origin.position.x = self.nav2_x_min
+        grid.info.origin.position.y = self.nav2_y_min
+        grid.info.origin.position.z = 0.0
+        grid.info.origin.orientation.w = 1.0
+        grid.data = grid_data.flatten().tolist()
+        return grid
+
+    def _publish_nav2_grids(self, source_msg, keepout_mask, drivable_mask):
+        if not self.nav2_publish_grid:
+            return
+        keepout_msg = self._build_grid_message(source_msg, keepout_mask.astype(np.int8))
+        drivable_grid = np.where(drivable_mask > 0, 0, 100).astype(np.int8)
+        drivable_msg = self._build_grid_message(source_msg, drivable_grid)
+        self.nav2_mask_pub.publish(keepout_msg)
+        self.nav2_drivable_pub.publish(drivable_msg)
+
+    def _publish_detections(
+        self,
+        source_msg,
+        seg_detections,
+        object_detections,
+        keepout_mask,
+        drivable_grid,
+        start,
+    ):
         elapsed_ms = (time.perf_counter() - start) * 1000.0
         payload = {
             'header': {
@@ -314,6 +463,13 @@ class LivePerceptionNode(Node):
             'competition_objects': {
                 'count': len(object_detections),
                 'detections': object_detections,
+            },
+            'nav2_grid': {
+                'keepout_cells': int(np.count_nonzero(keepout_mask == 100)),
+                'drivable_cells': int(np.count_nonzero(drivable_grid > 0)),
+                'resolution': self.nav2_grid_resolution,
+                'x_range': self.nav2_x_range,
+                'y_range': self.nav2_y_range,
             },
             'timing_ms': elapsed_ms,
         }
@@ -347,6 +503,18 @@ class LivePerceptionNode(Node):
         ]
         self.label_pub.publish(msg)
         self.last_label_publish = time.monotonic()
+
+    def _publish_filter_info(self):
+        if not self.nav2_publish_grid:
+            return
+        msg = CostmapFilterInfo()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'base_link'
+        msg.type = 0
+        msg.filter_mask_topic = '/seg_ros/live/nav2/filter_mask'
+        msg.base = 0.0
+        msg.multiplier = 1.0
+        self.nav2_filter_info_pub.publish(msg)
 
     def _draw_detection(self, image, det):
         color = self._color_for(det['class_name'])

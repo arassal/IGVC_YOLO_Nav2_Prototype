@@ -48,7 +48,7 @@ This checkpoint is committed because it is small enough for normal Git usage.
 ## External Weight
 
 ```text
-/home/alexander/Desktop/seg/data/weights/yolopv2.pt
+/home/alexander/github/av-perception/data/weights/yolopv2.pt
 ```
 
 Use:
