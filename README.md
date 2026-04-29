@@ -1,8 +1,8 @@
-# IGVC YOLO ROS2 Nav2 Prototype
+# IGVC YOLO Nav2 Prototype
 
 Public dashboard:
 
-- https://arassal.github.io/IGVC_Nav2_SegFormer/
+- https://arassal.github.io/IGVC_YOLO_Nav2_Prototype/
 
 Working branch for this prototype:
 
