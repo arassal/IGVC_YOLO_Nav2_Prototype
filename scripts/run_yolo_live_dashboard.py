@@ -38,7 +38,6 @@ HTML = """<!doctype html>
     .panel {{ background: #14181d; border: 1px solid #2d333b; border-radius: 8px; overflow: hidden; }}
     .panel header {{ padding: 10px 12px; background: #1b2128; border-bottom: 1px solid #2d333b; font-size: 14px; font-weight: 600; }}
     .panel img {{ display: block; width: 100%; height: auto; background: #000; }}
-    .center {{ grid-column: 2 / span 1; }}
     .status {{ margin-top: 12px; font-size: 13px; color: #99a4af; }}
     .live {{ margin: 0 0 14px; font-size: 13px; color: #c7d0da; }}
     code {{ color: #d7e3f0; }}

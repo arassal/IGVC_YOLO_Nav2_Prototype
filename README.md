@@ -12,6 +12,10 @@ Rebuild contract for another agent:
 
 - [docs/rebuild_contract.md](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/rebuild_contract.md)
 
+Startup quickstart:
+
+- [docs/startup_quickstart.md](/home/alexander/Desktop/IGVC_Nav2_SegFormer/docs/startup_quickstart.md)
+
 This repository is the current ROS 2 / Nav2 prototype for IGVC-style lane following with:
 
 - `YOLOPv2` for drivable area and lane segmentation

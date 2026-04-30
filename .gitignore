@@ -20,6 +20,7 @@ log/
 
 # Local runtime data
 .ros/
+.tmp/
 *.bag
 *.db3
 
